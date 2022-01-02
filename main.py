@@ -6,6 +6,8 @@ from decimal import Decimal
 
 import os
 
+delayStatic = 300
+
 def clearConsole():
     command = 'clear'
     if os.name in ('nt', 'dos'):  # If Machine is running on Windows, use cls
@@ -55,9 +57,9 @@ class Crypto:
         real_v_shiba_s = Decimal(get_real_value(self.invested_at))
         self.profits = Decimal((self.latest_value-real_v_shiba_s))
 
-        data = read_data("C:\\Users\\parta\\Desktop\\RDG\\crypto_data_" + self.name + ".txt")
+        data = read_data("C:\\Programs\\cryptoChecker\\crypto_data_" + self.name + ".txt")
 
-        f = open("C:\\Users\\parta\\Desktop\\RDG\\crypto_data_" + self.name + ".txt", "w")
+        f = open("C:\\Programs\\cryptoChecker\\crypto_data_" + self.name + ".txt", "w")
         stxS = "STATUS: LOSS\t" + str(self.profits)
         if self.profits > 0:
             stxS = "STATUS: PROFIT!\t" + str(self.profits)
@@ -93,13 +95,12 @@ def getRowLength(length):
 
 def run(cryptos):
     while True:
+        checks = list()
         for crypto in cryptos:
-            check = crypto.do_check()
-	
-	time.sleep(5)
+            checks.append(crypto.do_check())
         clearConsole()
-	
-        for crypto in cryptos:
+        for i in range(0, len(cryptos)):
+            check = checks[i]
             os.system('echo \033[1m' + check[0] + '\033[0m')
             print("Current: " + str(check[1]))
             txt = ""
@@ -112,14 +113,30 @@ def run(cryptos):
             os.system('echo.')
 
         timeD = get_time()
-        print('\n\033[1m' + getRowLength(len(timeD)) + '\n' + timeD + '\n' + getRowLength(len(timeD)) + '\n\033[0m')
-        time.sleep(300)
+        print('\033[1m' + getRowLength(len(timeD)) + '\n' + timeD + '\n' + getRowLength(len(timeD)) + '\n\033[0m')
+        time.sleep(delayStatic)
 
 if __name__ == '__main__':
 
     cryptos = list()
+    if os.path.isfile("C:\\Programs\\cryptoChecker\\cryptos.csv") == False:
+        cryptos_csv = open("C:\\Programs\\cryptoChecker\\cryptos.csv",'w')
+        cryptos_csv.write('300\nBTC,https://coinmarketcap.com/currencies/bitcoin/,57021.55,\n')
+        cryptos_csv.close()
+
     cryptos_csv = open("C:\\Programs\\cryptoChecker\\cryptos.csv")
     lines_crypto = cryptos_csv.readlines()
+    if len(lines_crypto) != 0 and len(lines_crypto[0].split(",")) == 1:
+        delayStatic = int(lines_crypto[0])
+        lines_crypto = lines_crypto[1:]
+    elif len(lines_crypto) != 0:
+        delayStatic = int(input('Please enter the interval in seconds in which you want a check to be done,\n150 means that there would be 2 minutes and 30 seconds between checks\nInput value here, only digits:'))
+        cryptos_csv = open("C:\\Programs\\cryptoChecker\\cryptos.csv", "w")
+        cryptos_csv.write(str(delayStatic) + '\n')
+        for crypto in cryptos:
+            cryptos_csv.write(crypto.name + "," + crypto.url + "," + get_real_value(crypto.invested_at) + ",\n")
+        cryptos_csv.close()
+
     for line in lines_crypto:
         datacells = line.split(",")
         cryptos.append(Crypto(datacells[0], datacells[1], datacells[2]))
@@ -133,7 +150,7 @@ if __name__ == '__main__':
         while addMore:
             print("INPUT NAME")
             name = input()
-            print("INPUT URL (must be from coinmarketcap.com")
+            print("INPUT URL (must be from coinmarketcap.com)")
             url = input()
             if url.startswith("https://coinmarketcap.com/currencies/") == False :
                 print("ERROR, NOT VALID URL!\nSTARTING AGAIN.")
@@ -141,6 +158,7 @@ if __name__ == '__main__':
             invested_at = input()
             cryptos.append(Crypto(name, url, invested_at))
             cryptos_csv = open("C:\\Programs\\cryptoChecker\\cryptos.csv", "w")
+            cryptos_csv.write(str(delayStatic) + '\n')
             for crypto in cryptos:
                 cryptos_csv.write(crypto.name + "," + crypto.url + "," + get_real_value(crypto.invested_at) + ",\n")
             cryptos_csv.close()
@@ -157,4 +175,3 @@ if __name__ == '__main__':
                 cryptos[j] = cryptos[j+1]
                 cryptos[j+1] = temp
     run(cryptos)
-
